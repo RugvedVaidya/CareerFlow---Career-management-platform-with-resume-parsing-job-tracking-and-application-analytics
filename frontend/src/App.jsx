@@ -2,6 +2,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Applications from "./pages/Applications";
+import NewApplication from "./pages/NewApplication";
+import Resumes from "./pages/Resumes";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const Placeholder = ({ title }) => {
@@ -33,7 +36,16 @@ function App() {
         path="/applications"
         element={
           <ProtectedRoute>
-            <Placeholder title="Applications" />
+            <Applications />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/applications/new"
+        element={
+          <ProtectedRoute>
+            <NewApplication />
           </ProtectedRoute>
         }
       />
@@ -42,7 +54,7 @@ function App() {
         path="/resumes"
         element={
           <ProtectedRoute>
-            <Placeholder title="Resumes" />
+            <Resumes />
           </ProtectedRoute>
         }
       />
