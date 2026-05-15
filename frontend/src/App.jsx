@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Applications from "./pages/Applications";
 import NewApplication from "./pages/NewApplication";
 import Resumes from "./pages/Resumes";
+import Analyze from "./pages/Analyze";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const Placeholder = ({ title }) => {
@@ -63,7 +64,7 @@ function App() {
         path="/analyze"
         element={
           <ProtectedRoute>
-            <Placeholder title="Analyzer" />
+            <Analyze />
           </ProtectedRoute>
         }
       />
