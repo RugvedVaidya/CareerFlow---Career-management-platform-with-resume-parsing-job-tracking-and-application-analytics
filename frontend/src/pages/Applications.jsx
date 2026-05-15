@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Trash2, Eye, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Trash2, Eye, X, ExternalLink } from "lucide-react";
 import API from "../api/axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
 const Applications = () => {
+  const navigate = useNavigate();
+
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDescription, setSelectedDescription] = useState(null);
@@ -25,6 +27,7 @@ const Applications = () => {
       setApplications(data.applications || []);
     } catch (error) {
       console.error(error);
+      alert(error.response?.data?.message || "Failed to load applications");
     } finally {
       setLoading(false);
     }
@@ -35,9 +38,7 @@ const Applications = () => {
       const { data } = await API.put(`/applications/${id}`, { status });
 
       setApplications((prev) =>
-        prev.map((app) =>
-          app.id === id ? data.application : app
-        )
+        prev.map((app) => (app.id === id ? data.application : app))
       );
     } catch (error) {
       alert(error.response?.data?.message || "Failed to update status");
@@ -53,6 +54,7 @@ const Applications = () => {
 
     try {
       await API.delete(`/applications/${id}`);
+
       setApplications((prev) => prev.filter((app) => app.id !== id));
     } catch (error) {
       alert(error.response?.data?.message || "Failed to delete application");
@@ -71,19 +73,21 @@ const Applications = () => {
         <Navbar />
 
         <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
                 Applications
               </h1>
+
               <p className="text-slate-500 text-sm">
-                Track every company, role, status, resume, and job description.
+                Track every company, role, source, resume, status, and job
+                description.
               </p>
             </div>
 
             <Link
               to="/applications/new"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium"
+              className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium"
             >
               <Plus size={18} />
               Add Application
@@ -105,24 +109,39 @@ const Applications = () => {
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Company
                       </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Role
                       </th>
+
+                      <th className="px-5 py-4 text-sm font-semibold text-slate-600">
+                        Applied From
+                      </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Status
                       </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Resume Used
                       </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Match
                       </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Applied
                       </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         JD
                       </th>
+
+                      <th className="px-5 py-4 text-sm font-semibold text-slate-600">
+                        Details
+                      </th>
+
                       <th className="px-5 py-4 text-sm font-semibold text-slate-600">
                         Action
                       </th>
@@ -141,6 +160,10 @@ const Applications = () => {
 
                         <td className="px-5 py-4 text-slate-600">
                           {app.jobRole}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {app.appliedFrom || "-"}
                         </td>
 
                         <td className="px-5 py-4">
@@ -194,6 +217,16 @@ const Applications = () => {
 
                         <td className="px-5 py-4">
                           <button
+                            onClick={() => navigate(`/applications/${app.id}`)}
+                            className="inline-flex items-center gap-1 text-slate-700 hover:text-blue-700"
+                          >
+                            <ExternalLink size={17} />
+                            Open
+                          </button>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <button
                             onClick={() => deleteApplication(app.id)}
                             className="text-red-500 hover:text-red-700"
                           >
@@ -218,6 +251,7 @@ const Applications = () => {
                 <h2 className="text-xl font-bold text-slate-900">
                   {selectedDescription.companyName}
                 </h2>
+
                 <p className="text-sm text-slate-500">
                   {selectedDescription.jobRole}
                 </p>

@@ -16,6 +16,7 @@ const NewApplication = () => {
     jobDescription: "",
     status: "APPLIED",
     appliedDate: new Date().toISOString().split("T")[0],
+    appliedFrom: "",
     resumeId: "",
   });
 
@@ -30,6 +31,18 @@ const NewApplication = () => {
     "INTERVIEW",
     "OFFER",
     "REJECTED",
+  ];
+
+  const appliedFromOptions = [
+    "LinkedIn",
+    "Naukri",
+    "Glassdoor",
+    "Instahyre",
+    "Indeed",
+    "Fiverr",
+    "Company Website",
+    "Referral",
+    "Other",
   ];
 
   const fetchResumes = async () => {
@@ -86,8 +99,10 @@ const NewApplication = () => {
             <h1 className="text-2xl font-bold text-slate-900">
               Add Application
             </h1>
+
             <p className="text-slate-500 text-sm">
-              Save a job description and select the resume used for this application.
+              Save company details, job description, source, and the resume used
+              for this application.
             </p>
           </div>
 
@@ -104,6 +119,7 @@ const NewApplication = () => {
                   <label className="text-sm font-medium text-slate-700">
                     Company Name
                   </label>
+
                   <input
                     name="companyName"
                     value={formData.companyName}
@@ -118,6 +134,7 @@ const NewApplication = () => {
                   <label className="text-sm font-medium text-slate-700">
                     Job Role
                   </label>
+
                   <input
                     name="jobRole"
                     value={formData.jobRole}
@@ -134,6 +151,7 @@ const NewApplication = () => {
                   <label className="text-sm font-medium text-slate-700">
                     Location
                   </label>
+
                   <input
                     name="location"
                     value={formData.location}
@@ -147,6 +165,7 @@ const NewApplication = () => {
                   <label className="text-sm font-medium text-slate-700">
                     Status
                   </label>
+
                   <select
                     name="status"
                     value={formData.status}
@@ -165,6 +184,7 @@ const NewApplication = () => {
                   <label className="text-sm font-medium text-slate-700">
                     Applied Date
                   </label>
+
                   <input
                     type="date"
                     name="appliedDate"
@@ -175,36 +195,67 @@ const NewApplication = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Resume Used
-                </label>
-                <select
-                  name="resumeId"
-                  value={formData.resumeId}
-                  onChange={handleChange}
-                  className="mt-1 w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">
-                    {loadingResumes ? "Loading resumes..." : "No resume selected"}
-                  </option>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Applied From
+                  </label>
 
-                  {resumes.map((resume) => (
-                    <option key={resume.id} value={resume.id}>
-                      {resume.fileName}
+                  <select
+                    name="appliedFrom"
+                    value={formData.appliedFrom}
+                    onChange={handleChange}
+                    className="mt-1 w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select platform</option>
+
+                    {appliedFromOptions.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+
+                  <p className="text-xs text-slate-500 mt-1">
+                    Example: LinkedIn, Naukri, Glassdoor, Instahyre, Referral.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Resume Used
+                  </label>
+
+                  <select
+                    name="resumeId"
+                    value={formData.resumeId}
+                    onChange={handleChange}
+                    className="mt-1 w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">
+                      {loadingResumes
+                        ? "Loading resumes..."
+                        : "No resume selected"}
                     </option>
-                  ))}
-                </select>
 
-                <p className="text-xs text-slate-500 mt-1">
-                  This helps track which resume version was used for each application.
-                </p>
+                    {resumes.map((resume) => (
+                      <option key={resume.id} value={resume.id}>
+                        {resume.fileName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <p className="text-xs text-slate-500 mt-1">
+                    This helps track which resume version was used.
+                  </p>
+                </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-slate-700">
                   Job Description
                 </label>
+
                 <textarea
                   name="jobDescription"
                   value={formData.jobDescription}
@@ -216,7 +267,7 @@ const NewApplication = () => {
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   disabled={loading}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold disabled:opacity-60"

@@ -12,6 +12,7 @@ const createApplication = asyncHandler(async (req, res) => {
     jobDescription,
     status,
     appliedDate,
+    appliedFrom,
     resumeId,
   } = req.body;
 
@@ -46,6 +47,7 @@ const createApplication = asyncHandler(async (req, res) => {
       jobDescription,
       status: status || "APPLIED",
       appliedDate: appliedDate ? new Date(appliedDate) : null,
+      appliedFrom: appliedFrom || null,
       userId: req.user.id,
       resumeId: selectedResumeId,
     },
@@ -108,9 +110,15 @@ const getApplicationById = asyncHandler(async (req, res) => {
         select: {
           id: true,
           fileName: true,
+          createdAt: true,
         },
       },
       analyses: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      interviewRounds: {
         orderBy: {
           createdAt: "desc",
         },
@@ -152,6 +160,7 @@ const updateApplication = asyncHandler(async (req, res) => {
     jobDescription,
     status,
     appliedDate,
+    appliedFrom,
     resumeId,
   } = req.body;
 
@@ -193,6 +202,8 @@ const updateApplication = asyncHandler(async (req, res) => {
             ? new Date(appliedDate)
             : null
           : application.appliedDate,
+      appliedFrom:
+        appliedFrom !== undefined ? appliedFrom || null : application.appliedFrom,
       resumeId: selectedResumeId,
     },
     include: {

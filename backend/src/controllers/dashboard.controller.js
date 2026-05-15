@@ -24,6 +24,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       status: true,
       matchScore: true,
       appliedDate: true,
+      appliedFrom: true,
       createdAt: true,
       resume: {
         select: {

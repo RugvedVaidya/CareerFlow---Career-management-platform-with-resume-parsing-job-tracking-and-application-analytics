@@ -7,6 +7,7 @@ import NewApplication from "./pages/NewApplication";
 import Resumes from "./pages/Resumes";
 import Analyze from "./pages/Analyze";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ApplicationDetail from "./pages/ApplicationDetail";
 
 const Placeholder = ({ title }) => {
   return (
@@ -47,6 +48,15 @@ function App() {
         element={
           <ProtectedRoute>
             <NewApplication />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/applications/:id"
+        element={
+          <ProtectedRoute>
+            <ApplicationDetail />
           </ProtectedRoute>
         }
       />
