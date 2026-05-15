@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import Sidebar from "../components/Sidebar";
@@ -7,6 +7,8 @@ import Navbar from "../components/Navbar";
 const NewApplication = () => {
   const navigate = useNavigate();
 
+  const [resumes, setResumes] = useState([]);
+
   const [formData, setFormData] = useState({
     companyName: "",
     jobRole: "",
@@ -14,10 +16,12 @@ const NewApplication = () => {
     jobDescription: "",
     status: "APPLIED",
     appliedDate: new Date().toISOString().split("T")[0],
+    resumeId: "",
   });
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingResumes, setLoadingResumes] = useState(true);
 
   const statuses = [
     "SAVED",
@@ -27,6 +31,21 @@ const NewApplication = () => {
     "OFFER",
     "REJECTED",
   ];
+
+  const fetchResumes = async () => {
+    try {
+      const { data } = await API.get("/resumes");
+      setResumes(data.resumes || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingResumes(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResumes();
+  }, []);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -42,7 +61,10 @@ const NewApplication = () => {
       setError("");
       setLoading(true);
 
-      await API.post("/applications", formData);
+      await API.post("/applications", {
+        ...formData,
+        resumeId: formData.resumeId ? Number(formData.resumeId) : null,
+      });
 
       navigate("/applications");
     } catch (error) {
@@ -65,7 +87,7 @@ const NewApplication = () => {
               Add Application
             </h1>
             <p className="text-slate-500 text-sm">
-              Save a job description so CareerFlow can analyze it later.
+              Save a job description and select the resume used for this application.
             </p>
           </div>
 
@@ -151,6 +173,32 @@ const NewApplication = () => {
                     className="mt-1 w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Resume Used
+                </label>
+                <select
+                  name="resumeId"
+                  value={formData.resumeId}
+                  onChange={handleChange}
+                  className="mt-1 w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">
+                    {loadingResumes ? "Loading resumes..." : "No resume selected"}
+                  </option>
+
+                  {resumes.map((resume) => (
+                    <option key={resume.id} value={resume.id}>
+                      {resume.fileName}
+                    </option>
+                  ))}
+                </select>
+
+                <p className="text-xs text-slate-500 mt-1">
+                  This helps track which resume version was used for each application.
+                </p>
               </div>
 
               <div>

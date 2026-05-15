@@ -7,11 +7,13 @@ import {
   FileText,
   Target,
   Activity,
+  X,
 } from "lucide-react";
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
 
   const fetchDashboard = async () => {
     try {
@@ -93,6 +95,9 @@ const Dashboard = () => {
                         {app.companyName}
                       </h4>
                       <p className="text-sm text-slate-500">{app.jobRole}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Resume: {app.resume?.fileName || "Not selected"}
+                      </p>
                     </div>
 
                     <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700">
@@ -125,6 +130,9 @@ const Dashboard = () => {
                         {app.companyName}
                       </h4>
                       <p className="text-sm text-slate-500">{app.jobRole}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Resume: {app.resume?.fileName || "Not selected"}
+                      </p>
                     </div>
 
                     <span className="text-sm font-semibold text-green-600">
@@ -149,9 +157,10 @@ const Dashboard = () => {
               )}
 
               {stats?.latestAnalyses?.map((item) => (
-                <div
+                <button
                   key={item.id}
-                  className="p-4 rounded-xl border border-slate-200"
+                  onClick={() => setSelectedAnalysis(item)}
+                  className="w-full text-left p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition"
                 >
                   <div className="flex justify-between">
                     <div>
@@ -161,6 +170,9 @@ const Dashboard = () => {
                       </h4>
                       <p className="text-sm text-slate-500">
                         Resume: {item.resume.fileName}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Click to view full analysis
                       </p>
                     </div>
 
@@ -179,12 +191,109 @@ const Dashboard = () => {
                       </span>
                     ))}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
         </div>
       </main>
+
+      {selectedAnalysis && (
+        <AnalysisModal
+          analysis={selectedAnalysis}
+          onClose={() => setSelectedAnalysis(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+const AnalysisModal = ({ analysis, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden">
+        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              {analysis.application.companyName} - {analysis.application.jobRole}
+            </h2>
+            <p className="text-sm text-slate-500">
+              Resume: {analysis.resume.fileName}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="h-9 w-9 rounded-full hover:bg-slate-100 flex items-center justify-center"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto max-h-[70vh] space-y-6">
+          <div className="bg-blue-50 text-blue-700 rounded-2xl p-5">
+            <p className="text-sm">Match Score</p>
+            <h3 className="text-4xl font-bold mt-1">{analysis.score}%</h3>
+          </div>
+
+          <SkillBlock
+            title="Matched Skills"
+            skills={analysis.matchedSkills}
+            color="green"
+          />
+
+          <SkillBlock
+            title="Missing Skills"
+            skills={analysis.missingSkills}
+            color="orange"
+          />
+
+          <div>
+            <h3 className="font-semibold text-slate-800 mb-3">
+              Suggested Changes
+            </h3>
+
+            <ul className="space-y-3">
+              {analysis.suggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  className="p-4 rounded-xl bg-slate-50 text-sm text-slate-700"
+                >
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SkillBlock = ({ title, skills, color }) => {
+  const styles = {
+    green: "bg-green-50 text-green-700",
+    orange: "bg-orange-50 text-orange-700",
+  };
+
+  return (
+    <div>
+      <h3 className="font-semibold text-slate-800 mb-3">{title}</h3>
+
+      {skills.length === 0 ? (
+        <p className="text-sm text-slate-500">No skills found.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <span
+              key={skill}
+              className={`text-xs px-3 py-1 rounded-full ${styles[color]}`}
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

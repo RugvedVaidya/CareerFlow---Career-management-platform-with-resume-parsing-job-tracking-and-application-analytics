@@ -20,68 +20,77 @@ model User {
 }
 
 model Resume {
-  id            Int              @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   fileName      String
   filePath      String
   extractedText String
-  userId        Int
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses      AnalysisResult[]
-  createdAt     DateTime         @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  applications JobApplication[]
+  analyses     AnalysisResult[]
+
+  createdAt DateTime @default(now())
 }
 
 model JobApplication {
-  id             Int               @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   companyName    String
   jobRole        String
   location       String?
   jobDescription String
-  status         ApplicationStatus @default(APPLIED)
-  appliedDate    DateTime
-  matchScore     Float?
-  userId         Int
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses       AnalysisResult[]
-  interviews     InterviewRound[]
-  reminders      Reminder[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  status         String    @default("APPLIED")
+  matchScore     Int?
+  appliedDate    DateTime?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  resumeId Int?
+  resume   Resume? @relation(fields: [resumeId], references: [id])
+
+  analyses        AnalysisResult[]
+  interviewRounds InterviewRound[]
+  reminders       Reminder[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model AnalysisResult {
-  id             Int            @id @default(autoincrement())
-  score          Float
-  matchedSkills  String[]
-  missingSkills  String[]
-  suggestions    String[]
-  resumeId       Int
-  applicationId  Int
-  resume         Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  application    JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime       @default(now())
+  id            Int            @id @default(autoincrement())
+  score         Float
+  matchedSkills String[]
+  missingSkills String[]
+  suggestions   String[]
+  resumeId      Int
+  applicationId Int
+  resume        Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
 }
 
 model InterviewRound {
-  id             Int            @id @default(autoincrement())
-  roundName      String
-  roundDate      DateTime?
-  notes          String?
-  result         String?
-  applicationId  Int
-  application    JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime       @default(now())
+  id            Int            @id @default(autoincrement())
+  roundName     String
+  roundDate     DateTime?
+  notes         String?
+  result        String?
+  applicationId Int
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
 }
 
 model Reminder {
-  id             Int             @id @default(autoincrement())
-  message        String
-  reminderDate   DateTime
-  isCompleted    Boolean         @default(false)
-  userId         Int
-  applicationId  Int?
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application    JobApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  createdAt      DateTime        @default(now())
+  id            Int             @id @default(autoincrement())
+  message       String
+  reminderDate  DateTime
+  isCompleted   Boolean         @default(false)
+  userId        Int
+  applicationId Int?
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application   JobApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  createdAt     DateTime        @default(now())
 }
 
 enum ApplicationStatus {

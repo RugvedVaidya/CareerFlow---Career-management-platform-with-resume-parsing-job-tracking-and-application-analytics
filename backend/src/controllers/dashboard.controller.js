@@ -25,6 +25,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       matchScore: true,
       appliedDate: true,
       createdAt: true,
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",

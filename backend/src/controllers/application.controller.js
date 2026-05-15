@@ -12,13 +12,30 @@ const createApplication = asyncHandler(async (req, res) => {
     jobDescription,
     status,
     appliedDate,
+    resumeId,
   } = req.body;
 
-  if (!companyName || !jobRole || !jobDescription || !appliedDate) {
+  if (!companyName || !jobRole || !jobDescription) {
     res.status(400);
-    throw new Error(
-      "Company name, job role, job description, and applied date are required"
-    );
+    throw new Error("Company name, job role, and job description are required");
+  }
+
+  let selectedResumeId = null;
+
+  if (resumeId) {
+    const resume = await prisma.resume.findFirst({
+      where: {
+        id: Number(resumeId),
+        userId: req.user.id,
+      },
+    });
+
+    if (!resume) {
+      res.status(404);
+      throw new Error("Selected resume not found");
+    }
+
+    selectedResumeId = resume.id;
   }
 
   const application = await prisma.jobApplication.create({
@@ -28,51 +45,43 @@ const createApplication = asyncHandler(async (req, res) => {
       location,
       jobDescription,
       status: status || "APPLIED",
-      appliedDate: new Date(appliedDate),
+      appliedDate: appliedDate ? new Date(appliedDate) : null,
       userId: req.user.id,
+      resumeId: selectedResumeId,
+    },
+    include: {
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
     },
   });
 
   res.status(201).json({
     success: true,
-    message: "Job application created successfully",
+    message: "Application created successfully",
     application,
   });
 });
 
-// @desc    Get all job applications for logged-in user
+// @desc    Get all job applications
 // @route   GET /api/applications
 // @access  Private
 const getApplications = asyncHandler(async (req, res) => {
-  const { status, search } = req.query;
-
-  const filters = {
-    userId: req.user.id,
-  };
-
-  if (status) {
-    filters.status = status;
-  }
-
-  if (search) {
-    filters.OR = [
-      {
-        companyName: {
-          contains: search,
-          mode: "insensitive",
-        },
-      },
-      {
-        jobRole: {
-          contains: search,
-          mode: "insensitive",
-        },
-      },
-    ];
-  }
-
   const applications = await prisma.jobApplication.findMany({
-    where: filters,
+    where: {
+      userId: req.user.id,
+    },
+    include: {
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -89,23 +98,29 @@ const getApplications = asyncHandler(async (req, res) => {
 // @route   GET /api/applications/:id
 // @access  Private
 const getApplicationById = asyncHandler(async (req, res) => {
-  const applicationId = Number(req.params.id);
-
   const application = await prisma.jobApplication.findFirst({
     where: {
-      id: applicationId,
+      id: Number(req.params.id),
       userId: req.user.id,
     },
     include: {
-      interviews: true,
-      analyses: true,
-      reminders: true,
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
+      analyses: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
     },
   });
 
   if (!application) {
     res.status(404);
-    throw new Error("Job application not found");
+    throw new Error("Application not found");
   }
 
   res.status(200).json({
@@ -118,18 +133,16 @@ const getApplicationById = asyncHandler(async (req, res) => {
 // @route   PUT /api/applications/:id
 // @access  Private
 const updateApplication = asyncHandler(async (req, res) => {
-  const applicationId = Number(req.params.id);
-
-  const existingApplication = await prisma.jobApplication.findFirst({
+  const application = await prisma.jobApplication.findFirst({
     where: {
-      id: applicationId,
+      id: Number(req.params.id),
       userId: req.user.id,
     },
   });
 
-  if (!existingApplication) {
+  if (!application) {
     res.status(404);
-    throw new Error("Job application not found");
+    throw new Error("Application not found");
   }
 
   const {
@@ -139,29 +152,62 @@ const updateApplication = asyncHandler(async (req, res) => {
     jobDescription,
     status,
     appliedDate,
-    matchScore,
+    resumeId,
   } = req.body;
+
+  let selectedResumeId = application.resumeId;
+
+  if (resumeId !== undefined) {
+    if (resumeId === null || resumeId === "") {
+      selectedResumeId = null;
+    } else {
+      const resume = await prisma.resume.findFirst({
+        where: {
+          id: Number(resumeId),
+          userId: req.user.id,
+        },
+      });
+
+      if (!resume) {
+        res.status(404);
+        throw new Error("Selected resume not found");
+      }
+
+      selectedResumeId = resume.id;
+    }
+  }
 
   const updatedApplication = await prisma.jobApplication.update({
     where: {
-      id: applicationId,
+      id: application.id,
     },
     data: {
-      companyName: companyName ?? existingApplication.companyName,
-      jobRole: jobRole ?? existingApplication.jobRole,
-      location: location ?? existingApplication.location,
-      jobDescription: jobDescription ?? existingApplication.jobDescription,
-      status: status ?? existingApplication.status,
-      appliedDate: appliedDate
-        ? new Date(appliedDate)
-        : existingApplication.appliedDate,
-      matchScore: matchScore ?? existingApplication.matchScore,
+      companyName: companyName ?? application.companyName,
+      jobRole: jobRole ?? application.jobRole,
+      location: location ?? application.location,
+      jobDescription: jobDescription ?? application.jobDescription,
+      status: status ?? application.status,
+      appliedDate:
+        appliedDate !== undefined
+          ? appliedDate
+            ? new Date(appliedDate)
+            : null
+          : application.appliedDate,
+      resumeId: selectedResumeId,
+    },
+    include: {
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
     },
   });
 
   res.status(200).json({
     success: true,
-    message: "Job application updated successfully",
+    message: "Application updated successfully",
     application: updatedApplication,
   });
 });
@@ -170,29 +216,27 @@ const updateApplication = asyncHandler(async (req, res) => {
 // @route   DELETE /api/applications/:id
 // @access  Private
 const deleteApplication = asyncHandler(async (req, res) => {
-  const applicationId = Number(req.params.id);
-
-  const existingApplication = await prisma.jobApplication.findFirst({
+  const application = await prisma.jobApplication.findFirst({
     where: {
-      id: applicationId,
+      id: Number(req.params.id),
       userId: req.user.id,
     },
   });
 
-  if (!existingApplication) {
+  if (!application) {
     res.status(404);
-    throw new Error("Job application not found");
+    throw new Error("Application not found");
   }
 
   await prisma.jobApplication.delete({
     where: {
-      id: applicationId,
+      id: application.id,
     },
   });
 
   res.status(200).json({
     success: true,
-    message: "Job application deleted successfully",
+    message: "Application deleted successfully",
   });
 });
 
