@@ -1,71 +1,102 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  BarChart3,
+  Briefcase,
+  FileText,
+  LogOut,
+  SearchCheck,
+  Bell,
+  Sparkles,
+} from "lucide-react";
 
 const Sidebar = () => {
-  const links = [
+  const navigate = useNavigate();
+
+  const menuItems = [
     {
       name: "Dashboard",
       path: "/dashboard",
-      icon: "📊",
+      icon: BarChart3,
     },
     {
       name: "Applications",
       path: "/applications",
-      icon: "💼",
-    },
-    {
-      name: "Add Application",
-      path: "/applications/new",
-      icon: "➕",
+      icon: Briefcase,
     },
     {
       name: "Resumes",
       path: "/resumes",
-      icon: "📄",
+      icon: FileText,
     },
     {
-      name: "Analyze Resume",
+      name: "Analyzer",
       path: "/analyze",
-      icon: "🧠",
+      icon: SearchCheck,
     },
     {
       name: "Reminders",
       path: "/reminders",
-      icon: "⏰",
+      icon: Bell,
     },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
-    <aside className="hidden min-h-[calc(100vh-64px)] w-64 border-r bg-white px-4 py-6 shadow-sm md:block">
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-          Menu
-        </h2>
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950 text-white lg:flex lg:flex-col">
+      {/* Logo */}
+      <div className="border-b border-slate-800 px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/30">
+            <Sparkles size={22} />
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">CareerFlow</h1>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Job search command center
+            </p>
+          </div>
+        </div>
       </div>
 
-      <nav className="space-y-2">
-        {links.map((link) => (
-          <NavLink
-            key={link.path}
-            to={link.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`
-            }
-          >
-            <span className="text-lg">{link.icon}</span>
-            <span>{link.name}</span>
-          </NavLink>
-        ))}
+      {/* Menu */}
+      <nav className="flex-1 space-y-2 px-4 py-6">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                    : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                }`
+              }
+            >
+              <Icon size={20} />
+              <span>{item.name}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
-      <div className="mt-8 rounded-xl border bg-gray-50 p-4">
-        <h3 className="text-sm font-semibold text-gray-800">CareerFlow AI</h3>
-        <p className="mt-1 text-xs leading-5 text-gray-500">
-          Track applications, analyze resumes, and never miss follow-ups.
-        </p>
+      {/* Bottom */}
+      <div className="border-t border-slate-800 p-4">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
+        >
+          <LogOut size={20} />
+          Logout
+        </button>
       </div>
     </aside>
   );
