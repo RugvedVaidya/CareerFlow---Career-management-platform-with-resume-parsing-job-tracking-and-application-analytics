@@ -1,7 +1,7 @@
 const prisma = require("../config/db");
 const asyncHandler = require("../utils/asyncHandler");
 
-// @desc    Get dashboard analytics
+// @desc    Get dashboard stats
 // @route   GET /api/dashboard
 // @access  Private
 const getDashboardStats = asyncHandler(async (req, res) => {
@@ -15,17 +15,44 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     where: { userId },
   });
 
+  const applicationsWithScores = await prisma.jobApplication.findMany({
+    where: {
+      userId,
+      matchScore: {
+        not: null,
+      },
+    },
+    select: {
+      matchScore: true,
+    },
+  });
+
+  let averageMatchScore = 0;
+
+  if (applicationsWithScores.length > 0) {
+    const totalScore = applicationsWithScores.reduce(
+      (sum, app) => sum + app.matchScore,
+      0
+    );
+
+    averageMatchScore = Math.round(totalScore / applicationsWithScores.length);
+  }
+
   const applications = await prisma.jobApplication.findMany({
     where: { userId },
     select: {
-      id: true,
-      companyName: true,
-      jobRole: true,
       status: true,
-      matchScore: true,
-      appliedDate: true,
-      appliedFrom: true,
-      createdAt: true,
+    },
+  });
+
+  const statusCounts = applications.reduce((acc, app) => {
+    acc[app.status] = (acc[app.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const recentApplications = await prisma.jobApplication.findMany({
+    where: { userId },
+    include: {
       resume: {
         select: {
           id: true,
@@ -36,50 +63,31 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     orderBy: {
       createdAt: "desc",
     },
+    take: 5,
   });
 
-  const statusCounts = applications.reduce((acc, app) => {
-    acc[app.status] = (acc[app.status] || 0) + 1;
-    return acc;
-  }, {});
-
-  const scoredApplications = applications.filter(
-    (app) => app.matchScore !== null && app.matchScore !== undefined
-  );
-
-  const averageMatchScore =
-    scoredApplications.length === 0
-      ? 0
-      : Math.round(
-          scoredApplications.reduce((sum, app) => sum + app.matchScore, 0) /
-            scoredApplications.length
-        );
-
-  const recentApplications = applications.slice(0, 5);
-
-  const topMatches = [...scoredApplications]
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 5);
-
-  const monthlyMap = {};
-
-  applications.forEach((app) => {
-    const date = new Date(app.appliedDate);
-    const monthKey = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}`;
-
-    monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + 1;
+  const topMatches = await prisma.jobApplication.findMany({
+    where: {
+      userId,
+      matchScore: {
+        not: null,
+      },
+    },
+    include: {
+      resume: {
+        select: {
+          id: true,
+          fileName: true,
+        },
+      },
+    },
+    orderBy: {
+      matchScore: "desc",
+    },
+    take: 5,
   });
 
-  const monthlyApplications = Object.entries(monthlyMap)
-    .map(([month, count]) => ({
-      month,
-      count,
-    }))
-    .sort((a, b) => a.month.localeCompare(b.month));
-
-  const latestAnalyses = await prisma.analysisResult.findMany({
+  const latestAnalysesRaw = await prisma.analysisResult.findMany({
     where: {
       application: {
         userId,
@@ -107,6 +115,94 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     take: 5,
   });
 
+  const latestAnalyses = latestAnalysesRaw.map((analysis) => ({
+    id: analysis.id,
+    score: analysis.score,
+    matchedSkills: analysis.matchedSkills,
+    missingSkills: analysis.missingSkills,
+    suggestions: analysis.suggestions,
+    resumeId: analysis.resumeId,
+    applicationId: analysis.applicationId,
+    createdAt: analysis.createdAt,
+    application: analysis.application,
+    resume: analysis.resume,
+  }));
+
+  const monthlyApplicationsRaw = await prisma.jobApplication.findMany({
+    where: { userId },
+    select: {
+      createdAt: true,
+    },
+  });
+
+  const monthlyMap = {};
+
+  monthlyApplicationsRaw.forEach((app) => {
+    const date = new Date(app.createdAt);
+    const month = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    monthlyMap[month] = (monthlyMap[month] || 0) + 1;
+  });
+
+  const monthlyApplications = Object.keys(monthlyMap)
+    .sort()
+    .map((month) => ({
+      month,
+      count: monthlyMap[month],
+    }));
+
+  const now = new Date();
+
+  const upcomingReminders = await prisma.reminder.findMany({
+    where: {
+      userId,
+      isCompleted: false,
+      dueDate: {
+        gte: now,
+      },
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          companyName: true,
+          jobRole: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: {
+      dueDate: "asc",
+    },
+    take: 5,
+  });
+
+  const overdueReminders = await prisma.reminder.findMany({
+    where: {
+      userId,
+      isCompleted: false,
+      dueDate: {
+        lt: now,
+      },
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          companyName: true,
+          jobRole: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: {
+      dueDate: "asc",
+    },
+    take: 5,
+  });
+
   res.status(200).json({
     success: true,
     stats: {
@@ -118,6 +214,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       topMatches,
       monthlyApplications,
       latestAnalyses,
+      upcomingReminders,
+      overdueReminders,
     },
   });
 });

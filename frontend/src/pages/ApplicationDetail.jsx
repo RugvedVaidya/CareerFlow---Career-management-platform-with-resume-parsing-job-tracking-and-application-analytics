@@ -8,6 +8,7 @@ import {
   Target,
   Trash2,
 } from "lucide-react";
+
 import API from "../api/axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -33,10 +34,17 @@ const ApplicationDetail = () => {
 
   const fetchApplication = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const { data } = await API.get(`/applications/${id}`);
-      setApplication(data.application);
+
+      const appData = data.application || data.data || data;
+
+      setApplication(appData);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to load application");
+      setApplication(null);
     } finally {
       setLoading(false);
     }
@@ -83,7 +91,10 @@ const ApplicationDetail = () => {
 
   const updateRoundResult = async (roundId, result) => {
     try {
+      setError("");
+
       await API.put(`/interviews/${roundId}`, { result });
+
       fetchApplication();
     } catch (error) {
       alert(error.response?.data?.message || "Failed to update round");
@@ -98,7 +109,10 @@ const ApplicationDetail = () => {
     if (!confirmDelete) return;
 
     try {
+      setError("");
+
       await API.delete(`/interviews/${roundId}`);
+
       fetchApplication();
     } catch (error) {
       alert(error.response?.data?.message || "Failed to delete round");
@@ -113,8 +127,13 @@ const ApplicationDetail = () => {
     return (
       <div className="min-h-screen flex bg-slate-100">
         <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
-          Loading application...
+
+        <main className="flex-1">
+          <Navbar />
+
+          <div className="flex min-h-[70vh] items-center justify-center text-slate-600">
+            Loading application...
+          </div>
         </main>
       </div>
     );
@@ -124,13 +143,31 @@ const ApplicationDetail = () => {
     return (
       <div className="min-h-screen flex bg-slate-100">
         <Sidebar />
+
         <main className="flex-1">
           <Navbar />
-          <div className="p-6 text-red-600">{error || "Application not found"}</div>
+
+          <div className="p-8">
+            <button
+              onClick={() => navigate("/applications")}
+              className="mb-4 inline-flex items-center gap-2 text-slate-600 hover:text-slate-900"
+            >
+              <ArrowLeft size={18} />
+              Back to Applications
+            </button>
+
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error || "Application not found"}
+            </div>
+          </div>
         </main>
       </div>
     );
   }
+
+  const analyses = application.analyses || application.analysisResults || [];
+  const interviewRounds = application.interviewRounds || [];
+  const source = application.source || application.appliedFrom || "-";
 
   return (
     <div className="min-h-screen flex bg-slate-100">
@@ -139,7 +176,7 @@ const ApplicationDetail = () => {
       <main className="flex-1">
         <Navbar />
 
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-6">
           <button
             onClick={() => navigate("/applications")}
             className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900"
@@ -149,25 +186,28 @@ const ApplicationDetail = () => {
           </button>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          {/* Application Header */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">
-                  {application.companyName}
+                  {application.companyName || "Company"}
                 </h1>
-                <p className="text-slate-600 mt-1">{application.jobRole}</p>
+
+                <p className="mt-1 text-slate-600">
+                  {application.jobRole || "Role"}
+                </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge text={application.status} color="blue" />
-                  <Badge
-                    text={`Applied From: ${application.appliedFrom || "-"}`}
-                    color="slate"
-                  />
+                  <Badge text={application.status || "NA"} color="blue" />
+
+                  <Badge text={`Applied From: ${source}`} color="slate" />
+
                   <Badge
                     text={`Resume: ${
                       application.resume?.fileName || "Not selected"
@@ -177,8 +217,9 @@ const ApplicationDetail = () => {
                 </div>
               </div>
 
-              <div className="text-right">
+              <div className="text-left md:text-right">
                 <p className="text-sm text-slate-500">Match Score</p>
+
                 <h2 className="text-4xl font-bold text-blue-600">
                   {application.matchScore !== null &&
                   application.matchScore !== undefined
@@ -188,95 +229,120 @@ const ApplicationDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
               <InfoCard
                 icon={Briefcase}
                 label="Location"
                 value={application.location || "-"}
               />
+
               <InfoCard
                 icon={Calendar}
                 label="Applied Date"
                 value={
                   application.appliedDate
-                    ? new Date(application.appliedDate).toLocaleDateString()
+                    ? new Date(application.appliedDate).toLocaleDateString(
+                        "en-IN"
+                      )
                     : "-"
                 }
               />
+
               <InfoCard
                 icon={FileText}
                 label="Resume Used"
                 value={application.resume?.fileName || "Not selected"}
               />
-              <InfoCard
-                icon={Target}
-                label="Analyses"
-                value={application.analyses?.length || 0}
-              />
+
+              <InfoCard icon={Target} label="Analyses" value={analyses.length} />
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">
+          {/* Job Description */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-3 text-xl font-semibold text-slate-900">
               Job Description
             </h2>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-6">
-              {application.jobDescription}
-            </p>
+
+            {application.jobDescription ? (
+              <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                {application.jobDescription}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No job description added.
+              </p>
+            )}
           </section>
 
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
+          {/* Analysis History */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">
               Analysis History
             </h2>
 
-            {application.analyses?.length === 0 ? (
-              <p className="text-slate-500 text-sm">No analysis yet.</p>
+            {analyses.length === 0 ? (
+              <p className="text-sm text-slate-500">No analysis yet.</p>
             ) : (
               <div className="space-y-4">
-                {application.analyses.map((analysis) => (
+                {analyses.map((analysis) => (
                   <div
                     key={analysis.id}
-                    className="border border-slate-200 rounded-xl p-4"
+                    className="rounded-xl border border-slate-200 p-4"
                   >
                     <div className="flex justify-between">
                       <div>
                         <h3 className="font-semibold text-slate-800">
                           Score: {analysis.score}%
                         </h3>
+
                         <p className="text-xs text-slate-500">
-                          {new Date(analysis.createdAt).toLocaleString()}
+                          {analysis.createdAt
+                            ? new Date(analysis.createdAt).toLocaleString(
+                                "en-IN"
+                              )
+                            : ""}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                       <SkillList
                         title="Matched Skills"
-                        skills={analysis.matchedSkills}
+                        skills={analysis.matchedSkills || []}
                         color="green"
                       />
+
                       <SkillList
                         title="Missing Skills"
-                        skills={analysis.missingSkills}
+                        skills={analysis.missingSkills || []}
                         color="orange"
                       />
                     </div>
 
                     <div className="mt-4">
-                      <h4 className="font-semibold text-slate-700 mb-2">
+                      <h4 className="mb-2 font-semibold text-slate-700">
                         Suggestions
                       </h4>
-                      <ul className="space-y-2">
-                        {analysis.suggestions.map((suggestion, index) => (
-                          <li
-                            key={index}
-                            className="text-sm bg-slate-50 rounded-xl p-3 text-slate-700"
-                          >
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
+
+                      {(analysis.suggestions || []).length === 0 ? (
+                        <p className="text-sm text-slate-500">
+                          No suggestions available.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {(analysis.suggestions || []).map(
+                            (suggestion, index) => (
+                              <li
+                                key={index}
+                                className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700"
+                              >
+                                {suggestion}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -284,21 +350,22 @@ const ApplicationDetail = () => {
             )}
           </section>
 
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
+          {/* Interview Rounds */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">
               Interview Rounds
             </h2>
 
             <form
               onSubmit={addRound}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
+              className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4"
             >
               <input
                 name="roundName"
                 value={roundForm.roundName}
                 onChange={handleRoundChange}
                 placeholder="Round name"
-                className="px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
               />
 
               <input
@@ -306,14 +373,14 @@ const ApplicationDetail = () => {
                 name="roundDate"
                 value={roundForm.roundDate}
                 onChange={handleRoundChange}
-                className="px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
               />
 
               <select
                 name="result"
                 value={roundForm.result}
                 onChange={handleRoundChange}
-                className="px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {resultOptions.map((result) => (
                   <option key={result} value={result}>
@@ -324,7 +391,7 @@ const ApplicationDetail = () => {
 
               <button
                 disabled={addingRound}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold disabled:opacity-60"
+                className="rounded-xl bg-blue-600 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {addingRound ? "Adding..." : "Add Round"}
               </button>
@@ -335,32 +402,36 @@ const ApplicationDetail = () => {
                 onChange={handleRoundChange}
                 placeholder="Notes"
                 rows="3"
-                className="md:col-span-4 px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 md:col-span-4"
               />
             </form>
 
-            {application.interviewRounds?.length === 0 ? (
-              <p className="text-slate-500 text-sm">
+            {interviewRounds.length === 0 ? (
+              <p className="text-sm text-slate-500">
                 No interview rounds added yet.
               </p>
             ) : (
               <div className="space-y-3">
-                {application.interviewRounds.map((round) => (
+                {interviewRounds.map((round) => (
                   <div
                     key={round.id}
-                    className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                    className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 md:flex-row md:items-center md:justify-between"
                   >
                     <div>
                       <h3 className="font-semibold text-slate-800">
                         {round.roundName}
                       </h3>
+
                       <p className="text-sm text-slate-500">
                         {round.roundDate
-                          ? new Date(round.roundDate).toLocaleDateString()
+                          ? new Date(round.roundDate).toLocaleDateString(
+                              "en-IN"
+                            )
                           : "No date"}
                       </p>
+
                       {round.notes && (
-                        <p className="text-sm text-slate-700 mt-2">
+                        <p className="mt-2 text-sm text-slate-700">
                           {round.notes}
                         </p>
                       )}
@@ -372,7 +443,7 @@ const ApplicationDetail = () => {
                         onChange={(e) =>
                           updateRoundResult(round.id, e.target.value)
                         }
-                        className="text-xs px-3 py-2 rounded-xl bg-slate-50 border border-slate-200"
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs"
                       >
                         {resultOptions.map((result) => (
                           <option key={result} value={result}>
@@ -402,9 +473,9 @@ const ApplicationDetail = () => {
 const InfoCard = ({ icon: Icon, label, value }) => {
   return (
     <div className="rounded-xl border border-slate-200 p-4">
-      <Icon size={20} className="text-blue-600 mb-2" />
+      <Icon size={20} className="mb-2 text-blue-600" />
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="font-semibold text-slate-800 mt-1">{value}</p>
+      <p className="mt-1 font-semibold text-slate-800">{value}</p>
     </div>
   );
 };
@@ -417,7 +488,11 @@ const Badge = ({ text, color }) => {
   };
 
   return (
-    <span className={`text-xs px-3 py-1 rounded-full ${styles[color]}`}>
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-medium ${
+        styles[color] || styles.slate
+      }`}
+    >
       {text}
     </span>
   );
@@ -431,15 +506,18 @@ const SkillList = ({ title, skills, color }) => {
 
   return (
     <div>
-      <h4 className="font-semibold text-slate-700 mb-2">{title}</h4>
-      {skills.length === 0 ? (
+      <h4 className="mb-2 font-semibold text-slate-700">{title}</h4>
+
+      {(skills || []).length === 0 ? (
         <p className="text-sm text-slate-500">No skills found.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {skills.map((skill) => (
+          {(skills || []).map((skill) => (
             <span
               key={skill}
-              className={`text-xs px-3 py-1 rounded-full ${styles[color]}`}
+              className={`rounded-full px-3 py-1 text-xs ${
+                styles[color] || styles.green
+              }`}
             >
               {skill}
             </span>

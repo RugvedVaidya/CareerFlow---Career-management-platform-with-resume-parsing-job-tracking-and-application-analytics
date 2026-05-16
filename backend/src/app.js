@@ -7,6 +7,7 @@ const resumeRoutes = require("./routes/resume.routes");
 const analyzerRoutes = require("./routes/analyzer.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const interviewRoutes = require("./routes/interview.routes");
+const reminderRoutes = require("./routes/reminder.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -29,6 +30,7 @@ app.use("/api/resumes", resumeRoutes);
 app.use("/api/analyze", analyzerRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/interviews", interviewRoutes);
+app.use("/api/reminders", reminderRoutes);
 
 app.use(errorHandler);
 

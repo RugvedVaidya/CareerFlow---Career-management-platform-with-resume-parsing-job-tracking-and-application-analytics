@@ -8,6 +8,7 @@ import Resumes from "./pages/Resumes";
 import Analyze from "./pages/Analyze";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ApplicationDetail from "./pages/ApplicationDetail";
+import Reminders from "./pages/Reminders";
 
 const Placeholder = ({ title }) => {
   return (
@@ -78,6 +79,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/reminders"
+        element={
+          <ProtectedRoute>
+            <Reminders />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

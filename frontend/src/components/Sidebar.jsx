@@ -1,76 +1,72 @@
-import { Link, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Briefcase,
-  FileText,
-  SearchCheck,
-  LogOut,
-} from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
-  const location = useLocation();
-  const { logout } = useAuth();
-
   const links = [
     {
       name: "Dashboard",
       path: "/dashboard",
-      icon: LayoutDashboard,
+      icon: "📊",
     },
     {
       name: "Applications",
       path: "/applications",
-      icon: Briefcase,
+      icon: "💼",
+    },
+    {
+      name: "Add Application",
+      path: "/applications/new",
+      icon: "➕",
     },
     {
       name: "Resumes",
       path: "/resumes",
-      icon: FileText,
+      icon: "📄",
     },
     {
-      name: "Analyzer",
+      name: "Analyze Resume",
       path: "/analyze",
-      icon: SearchCheck,
+      icon: "🧠",
+    },
+    {
+      name: "Reminders",
+      path: "/reminders",
+      icon: "⏰",
     },
   ];
 
   return (
-    <aside className="hidden md:flex w-64 min-h-screen bg-slate-950 text-white flex-col">
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-2xl font-bold">CareerFlow</h1>
-        <p className="text-sm text-slate-400 mt-1">Job search command center</p>
+    <aside className="hidden min-h-[calc(100vh-64px)] w-64 border-r bg-white px-4 py-6 shadow-sm md:block">
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          Menu
+        </h2>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const active = location.pathname === link.path;
-
-          return (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
-                active
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <Icon size={20} />
-              <span>{link.name}</span>
-            </Link>
-          );
-        })}
+      <nav className="space-y-2">
+        {links.map((link) => (
+          <NavLink
+            key={link.path}
+            to={link.path}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`
+            }
+          >
+            <span className="text-lg">{link.icon}</span>
+            <span>{link.name}</span>
+          </NavLink>
+        ))}
       </nav>
 
-      <button
-        onClick={logout}
-        className="m-4 flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800"
-      >
-        <LogOut size={20} />
-        Logout
-      </button>
+      <div className="mt-8 rounded-xl border bg-gray-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-800">CareerFlow AI</h3>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          Track applications, analyze resumes, and never miss follow-ups.
+        </p>
+      </div>
     </aside>
   );
 };

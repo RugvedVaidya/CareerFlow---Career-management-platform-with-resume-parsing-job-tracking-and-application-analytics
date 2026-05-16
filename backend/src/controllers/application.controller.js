@@ -1,7 +1,7 @@
 const prisma = require("../config/db");
 const asyncHandler = require("../utils/asyncHandler");
 
-// @desc    Create job application
+// @desc    Create application
 // @route   POST /api/applications
 // @access  Private
 const createApplication = asyncHandler(async (req, res) => {
@@ -9,19 +9,19 @@ const createApplication = asyncHandler(async (req, res) => {
     companyName,
     jobRole,
     location,
-    jobDescription,
     status,
+    source,
+    jobDescription,
     appliedDate,
-    appliedFrom,
     resumeId,
   } = req.body;
 
-  if (!companyName || !jobRole || !jobDescription) {
+  if (!companyName || !jobRole) {
     res.status(400);
-    throw new Error("Company name, job role, and job description are required");
+    throw new Error("Company name and job role are required");
   }
 
-  let selectedResumeId = null;
+  let linkedResumeId = null;
 
   if (resumeId) {
     const resume = await prisma.resume.findFirst({
@@ -33,23 +33,23 @@ const createApplication = asyncHandler(async (req, res) => {
 
     if (!resume) {
       res.status(404);
-      throw new Error("Selected resume not found");
+      throw new Error("Resume not found");
     }
 
-    selectedResumeId = resume.id;
+    linkedResumeId = resume.id;
   }
 
   const application = await prisma.jobApplication.create({
     data: {
       companyName,
       jobRole,
-      location,
-      jobDescription,
+      location: location || null,
       status: status || "APPLIED",
+      source: source || null,
+      jobDescription: jobDescription || null,
       appliedDate: appliedDate ? new Date(appliedDate) : null,
-      appliedFrom: appliedFrom || null,
       userId: req.user.id,
-      resumeId: selectedResumeId,
+      resumeId: linkedResumeId,
     },
     include: {
       resume: {
@@ -68,7 +68,7 @@ const createApplication = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get all job applications
+// @desc    Get all applications
 // @route   GET /api/applications
 // @access  Private
 const getApplications = asyncHandler(async (req, res) => {
@@ -96,7 +96,7 @@ const getApplications = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get single job application
+// @desc    Get single application
 // @route   GET /api/applications/:id
 // @access  Private
 const getApplicationById = asyncHandler(async (req, res) => {
@@ -110,19 +110,11 @@ const getApplicationById = asyncHandler(async (req, res) => {
         select: {
           id: true,
           fileName: true,
-          createdAt: true,
         },
       },
-      analyses: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      interviewRounds: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
+      analysisResults: true,
+      interviewRounds: true,
+      reminders: true,
     },
   });
 
@@ -137,38 +129,41 @@ const getApplicationById = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Update job application
+// @desc    Update application
 // @route   PUT /api/applications/:id
 // @access  Private
 const updateApplication = asyncHandler(async (req, res) => {
-  const application = await prisma.jobApplication.findFirst({
-    where: {
-      id: Number(req.params.id),
-      userId: req.user.id,
-    },
-  });
-
-  if (!application) {
-    res.status(404);
-    throw new Error("Application not found");
-  }
+  const applicationId = Number(req.params.id);
 
   const {
     companyName,
     jobRole,
     location,
-    jobDescription,
     status,
+    source,
+    jobDescription,
     appliedDate,
-    appliedFrom,
+    matchScore,
     resumeId,
   } = req.body;
 
-  let selectedResumeId = application.resumeId;
+  const existingApplication = await prisma.jobApplication.findFirst({
+    where: {
+      id: applicationId,
+      userId: req.user.id,
+    },
+  });
+
+  if (!existingApplication) {
+    res.status(404);
+    throw new Error("Application not found");
+  }
+
+  let linkedResumeId = existingApplication.resumeId;
 
   if (resumeId !== undefined) {
     if (resumeId === null || resumeId === "") {
-      selectedResumeId = null;
+      linkedResumeId = null;
     } else {
       const resume = await prisma.resume.findFirst({
         where: {
@@ -179,32 +174,36 @@ const updateApplication = asyncHandler(async (req, res) => {
 
       if (!resume) {
         res.status(404);
-        throw new Error("Selected resume not found");
+        throw new Error("Resume not found");
       }
 
-      selectedResumeId = resume.id;
+      linkedResumeId = resume.id;
     }
   }
 
   const updatedApplication = await prisma.jobApplication.update({
     where: {
-      id: application.id,
+      id: existingApplication.id,
     },
     data: {
-      companyName: companyName ?? application.companyName,
-      jobRole: jobRole ?? application.jobRole,
-      location: location ?? application.location,
-      jobDescription: jobDescription ?? application.jobDescription,
-      status: status ?? application.status,
+      companyName: companyName ?? existingApplication.companyName,
+      jobRole: jobRole ?? existingApplication.jobRole,
+      location: location !== undefined ? location : existingApplication.location,
+      status: status ?? existingApplication.status,
+      source: source !== undefined ? source : existingApplication.source,
+      jobDescription:
+        jobDescription !== undefined
+          ? jobDescription
+          : existingApplication.jobDescription,
       appliedDate:
         appliedDate !== undefined
           ? appliedDate
             ? new Date(appliedDate)
             : null
-          : application.appliedDate,
-      appliedFrom:
-        appliedFrom !== undefined ? appliedFrom || null : application.appliedFrom,
-      resumeId: selectedResumeId,
+          : existingApplication.appliedDate,
+      matchScore:
+        matchScore !== undefined ? Number(matchScore) : existingApplication.matchScore,
+      resumeId: linkedResumeId,
     },
     include: {
       resume: {
@@ -223,13 +222,15 @@ const updateApplication = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Delete job application
+// @desc    Delete application
 // @route   DELETE /api/applications/:id
 // @access  Private
 const deleteApplication = asyncHandler(async (req, res) => {
+  const applicationId = Number(req.params.id);
+
   const application = await prisma.jobApplication.findFirst({
     where: {
-      id: Number(req.params.id),
+      id: applicationId,
       userId: req.user.id,
     },
   });
